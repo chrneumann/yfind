@@ -1,0 +1,4 @@
+*.pyc
+.cache/
+.coverage
+yfind.egg-info/
