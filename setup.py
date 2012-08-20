@@ -25,7 +25,7 @@ tests_require = [
     ]
 
 setup(name='yfind',
-      version='0.1.0dev1',
+      version='0.1.0a1',
       description="Search YAML files satisfying specified conditions.",
       long_description='\n\n'.join([README, CHANGES]),
       classifiers=[
@@ -48,10 +48,10 @@ setup(name='yfind',
       zip_safe=False,
       install_requires=install_requires,
       tests_require=tests_require,
-#      entry_points="""\
-#      [console_scripts]
-#      yfind = yfind:main
-#      """,
+      entry_points="""\
+      [console_scripts]
+      yfind = yfind:main
+      """,
       extras_require={
           'testing': tests_require,
           },

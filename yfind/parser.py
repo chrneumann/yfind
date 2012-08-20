@@ -102,6 +102,8 @@ class Node(Grammar):
         for element in self.elements[1]:
             if element.string == '.':
                 continue
+            if pos.get(element[0].string, None) is None:
+                return None
             pos = pos[element[0].string]
             if element[1] is not None:
                 pos = pos[int(element[1][1].string)]
@@ -123,6 +125,8 @@ class SearchGrammar(Grammar):
     def matches(data, exp):
         tree = SearchGrammar.parser().parse_string(exp, eof=True)
         (left, op, right) = tree.elements
+        if left.value(data) is None or right.value(data) is None:
+            return False
         return op.satisfied_by(left.value(data), right.value(data))
 
 

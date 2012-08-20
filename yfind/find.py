@@ -12,7 +12,7 @@ from yfind.parser import matches
 def _file_matches_expression(filepath, expression):
     """Check if given file matches the expression.
     """
-    with open('filepath') as f:
+    with open(filepath) as f:
         parsed = load(f, Loader=Loader)
     return matches(parsed, expression)
 
