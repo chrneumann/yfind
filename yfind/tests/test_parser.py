@@ -1,11 +1,4 @@
 class TestGrammar(object):
-    def test_search(self):
-        from yfind.parser import SearchGrammar
-        from yfind.parser import Operator
-        res = SearchGrammar.parser().parse_string(".foo.bar == .foo", eof=True)
-        assert len(res.elements) == 3
-        assert isinstance(res[1], Operator)
-
     def test_ops(self):
         from yfind.parser import matches
         data = {
@@ -16,8 +9,15 @@ class TestGrammar(object):
         assert matches(data, "4 < .foo.bar")
         assert matches(data, ".bar[1] == 2")
         assert not matches(data, ".bar[1] != 2")
+        assert matches(data, "not (.bar[1] != 2)")
         assert matches(data, ".bar[0] <= 1")
         assert matches(data, ".foo.bar >= 5")
+        assert matches(data, "(.bar[1] == 2) and (.foo.bar == 5)")
+        assert not matches(data, "(.bar[1] == 2) and (not (.foo.bar == 5))")
+        assert matches(data, "(.bar[1] == 3) or (not (.foo.bar == 3))")
+        assert matches(data, "?.bar[1]")
+        assert not matches(data, "?.bar[5]")
+        assert not matches(data, "?.void")
 
     def test_date(self):
         from yfind.parser import matches

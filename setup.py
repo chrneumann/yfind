@@ -25,7 +25,7 @@ tests_require = [
     ]
 
 setup(name='yfind',
-      version='0.1.0a1',
+      version='0.1.0a2',
       description="Search YAML files satisfying specified conditions.",
       long_description='\n\n'.join([README, CHANGES]),
       classifiers=[

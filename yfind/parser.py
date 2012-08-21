@@ -2,12 +2,14 @@ from datetime import date
 from functools import reduce
 import operator as op
 
+from modgrammar import EOF
 from modgrammar import Grammar
 from modgrammar import L
 from modgrammar import WORD
 from modgrammar import LIST_OF
 from modgrammar import OPTIONAL
 from modgrammar import ParseError
+from modgrammar import REF
 
 
 class Operator(Grammar):
@@ -97,7 +99,7 @@ class Node(Grammar):
                 pass
         return exp
 
-    def value(self, data):
+    def _traverse(self, data):
         pos = data
         for element in self.elements[1]:
             if element.string == '.':
@@ -106,8 +108,19 @@ class Node(Grammar):
                 return None
             pos = pos[element[0].string]
             if element[1] is not None:
-                pos = pos[int(element[1][1].string)]
-        return self._parse_value(pos)
+                index = int(element[1][1].string)
+                if index < len(pos):
+                    pos = pos[index]
+                else:
+                    return None
+        return pos
+
+    def exists(self, data):
+        return self._traverse(data) is not None
+
+    def value(self, data):
+        pos = self._traverse(data)
+        return pos is not None and self._parse_value(pos) or None
 
 
 class Operand(Grammar):
@@ -117,17 +130,79 @@ class Operand(Grammar):
         return self.elements[0].value(data)
 
 
+class BooleanUnaryOperator(Grammar):
+    grammar = (L("not"))
+
+    def bool_value(self, right, data):
+        return not right.bool_value(data)
+
+
+class BooleanBinaryOperator(Grammar):
+    op_map = {
+        'and': op.and_,
+        'or': op.or_,
+    }
+    grammar = reduce(op.or_, [L(item) for item in op_map.keys()])
+
+    def bool_value(self, left, right, data):
+        op = self.op_map[self.elements[0].string]
+        return op(left.bool_value(data), right.bool_value(data))
+
+
+class Comparision(Grammar):
+    grammar = (Operand, Operator, Operand)
+
+    def bool_value(self, data):
+        (left, op, right) = self.elements
+        if left.value(data) is None or right.value(data) is None:
+            return False
+        return op.satisfied_by(left.value(data), right.value(data))
+
+
+class BooleanUnaryComparision(Grammar):
+    grammar = (BooleanUnaryOperator, '(', REF('BooleanExpression'), ')')
+
+    def bool_value(self, data):
+        (op, right) = self.elements[0], self.elements[2]
+        return op.bool_value(right, data)
+
+
+class BooleanBinaryComparision(Grammar):
+    grammar = ('(', REF('BooleanExpression'), ')',
+               BooleanBinaryOperator, '(', REF('BooleanExpression'), ')')
+
+    def bool_value(self, data):
+        left, op, right = self.elements[1], self.elements[3], self.elements[5]
+        return op.bool_value(left, right, data)
+
+
+class Existance(Grammar):
+    grammar = ('?', Node)
+
+    def bool_value(self, data):
+        return self.elements[1].exists(data)
+
+
+class BooleanExpression(Grammar):
+    grammar = (
+        Comparision
+        | Existance
+        | BooleanUnaryComparision
+        | BooleanBinaryComparision
+    )
+
+    def bool_value(self, data):
+        return self.elements[0].bool_value(data)
+
+
 class SearchGrammar(Grammar):
     """Grammar for search expressions."""
-    grammar = (Operand, Operator, Operand)
+    grammar = (BooleanExpression, EOF)
 
     @staticmethod
     def matches(data, exp):
         tree = SearchGrammar.parser().parse_string(exp, eof=True)
-        (left, op, right) = tree.elements
-        if left.value(data) is None or right.value(data) is None:
-            return False
-        return op.satisfied_by(left.value(data), right.value(data))
+        return tree.elements[0].bool_value(data)
 
 
 def matches(data, expression):
